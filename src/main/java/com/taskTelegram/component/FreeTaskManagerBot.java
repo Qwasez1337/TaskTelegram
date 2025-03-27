@@ -1,46 +1,48 @@
 package com.taskTelegram.component;
 
+import lombok.SneakyThrows;
 import org.hibernate.annotations.Comment;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Component
-public class FreeTaskManagerBot  extends TelegramLongPollingBot {
+public class FreeTaskManagerBot extends TelegramLongPollingBot {
 
     @Value("${telegrambots.botToken}")
     private String botToken;
     @Value("${telegrambots.botUsername}")
     private String botUsername;
 
+    @SneakyThrows
     @Override
     public void onUpdateReceived(Update update) {
-        // Здесь обрабатывай входящие сообщения
-        if (update.hasMessage() && update.getMessage().hasText()) {
+
+        if (update.hasCallbackQuery()) {
+            String callData = update.getCallbackQuery().getData();
+            long chatId = update.getCallbackQuery().getMessage().getChatId();
+            if ("Привет".equals(callData)) {
+                sendMessage(chatId, "Держи пряник");
+            }
+        } else if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
-
-            // Пример простой обработки команды:
             if (messageText.startsWith("/start")) {
-                sendMessage(chatId, "Привет! Я твой таск-бот.");
-            } else if (messageText.startsWith("/addtask")) {
-                // Парсинг параметров и вызов taskService для добавления задачи
-                sendMessage(chatId, "Задача добавлена!");
-            } else if (messageText.startsWith("/listtasks")) {
-                // Вызов taskService для получения списка задач
-                sendMessage(chatId, "Список задач: ...");
+                execute(Keyboard.testInlineKeyboardAb(chatId));
             }
-            // Добавь другие команды по необходимости
         }
     }
 
     private void sendMessage(long chatId, String text) {
-        // Используй Telegram API для отправки сообщений
-        // Например, можно создать SendMessage, установить chatId, текст и вызвать execute(sendMessage)
-        // Здесь просто пример, детали можно найти в документации библиотеки
         try {
             var message = new org.telegram.telegrambots.meta.api.methods.send.SendMessage();
             message.setChatId(String.valueOf(chatId));
