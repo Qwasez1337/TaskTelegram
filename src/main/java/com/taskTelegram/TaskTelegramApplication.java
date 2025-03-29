@@ -8,7 +8,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class TaskTelegramApplication {
 
 	public static void main(String[] args) {
-		//ApiContextInitializer.init();
 		SpringApplication.run(TaskTelegramApplication.class, args);
 	}
 }

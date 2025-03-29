@@ -12,17 +12,21 @@ class Keyboard {
     public static SendMessage testInlineKeyboardAb (long chat_id) {
         SendMessage message = new SendMessage();
         message.setChatId(chat_id);
-        message.setText("Нажми на кнопку получишь результат");
+        message.setText("Выбери команду");
 
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> inlineKeyboardButtons = new ArrayList<>();
 
         List<InlineKeyboardButton> row1 = new ArrayList<>();
         InlineKeyboardButton inlineKeyboardButton1 = new InlineKeyboardButton();
-        inlineKeyboardButton1.setText("Приветствие");
-        inlineKeyboardButton1.setCallbackData("Привет");
+        inlineKeyboardButton1.setText("Текущие задачи");
+        inlineKeyboardButton1.setCallbackData("list");
+        InlineKeyboardButton inlineKeyboardButton2 = new InlineKeyboardButton();
+        inlineKeyboardButton2.setText("Создать задачу");
+        inlineKeyboardButton2.setCallbackData("add_task");
 
         row1.add(inlineKeyboardButton1);
+        row1.add(inlineKeyboardButton2);
         inlineKeyboardButtons.add(row1);
 
         inlineKeyboardMarkup.setKeyboard(inlineKeyboardButtons);
