@@ -9,10 +9,12 @@ import org.hibernate.annotations.Comment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.bots.DefaultAbsSender;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -37,7 +39,8 @@ public class FreeTaskManagerBot extends TelegramLongPollingBot {
     private final TaskService taskService;
     private final HashMap<Long, CreateTaskState> statesCreateTask = new HashMap<>();
     private final HashMap<Long, Task> currentTask = new HashMap<>();
-
+    private long user_id;
+    private long chat_id;
 
     public FreeTaskManagerBot(TaskService taskService) {
         this.taskService = taskService;
@@ -49,44 +52,56 @@ public class FreeTaskManagerBot extends TelegramLongPollingBot {
 
         if (update.hasCallbackQuery()) {
             String callData = update.getCallbackQuery().getData();
-            long chatId = update.getCallbackQuery().getMessage().getChatId();
             if ("list".equals(callData)) {
-                List <Task> taskList = taskService.findNotCompletedTasks();
-                sendMessage(chatId, getTaskListAsString(taskList));
+                List <Task> taskList = taskService.findByUserId(user_id);
+                sendMessage(chat_id, getTaskListAsString(taskList));
             } else if ("add_task".equals(callData)) {
-                sendMessage(chatId, "Введите название задачи");
-                currentTask.put(chatId, new Task());
-                statesCreateTask.put(chatId, new CreateTaskState(CreateTaskState.Stage.WAITING_FOR_TASK_NAME));
+                sendMessage(chat_id, "Введите название задачи");
+                Task taskNew = new Task();
+                taskNew.setUserId(user_id);
+                currentTask.put(chat_id, taskNew);
+                statesCreateTask.put(chat_id, new CreateTaskState(CreateTaskState.Stage.WAITING_FOR_TASK_NAME));
+            } else if ("status".equals(callData)) {
+                List <Task> taskList = taskService.findByUserId(user_id);
+                execute(Keyboard.getListTaskInKeyboard(chat_id, taskList));
+            } else if (callData.startsWith("done_")) {
+                Long taskId = Long.valueOf(callData.split("_")[1]);
+                Task task = taskService.findById(taskId);
+                taskService.delete(taskId);
+                sendMessage(chat_id, "Задача " + task.getTitle() + " выполенена");
+                execute(Keyboard.testInlineKeyboardAb(chat_id));
             }
 
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
-            long chatId = update.getMessage().getChatId();
+            user_id = update.getMessage().getFrom().getId();
+            chat_id = update.getMessage().getChatId();
             if (messageText.startsWith("/start")) {
-                execute(Keyboard.testInlineKeyboardAb(chatId));
+                execute(Keyboard.testInlineKeyboardAb(chat_id));
             }
-            if (statesCreateTask.containsKey(chatId)) {
-                CreateTaskState createTaskState = statesCreateTask.get(chatId);
-                Task task = currentTask.get(chatId);
+            if (statesCreateTask.containsKey(chat_id)) {
+                CreateTaskState createTaskState = statesCreateTask.get(chat_id);
+                Task task = currentTask.get(chat_id);
                 switch (createTaskState.getStage()){
                     case WAITING_FOR_TASK_NAME:
                         task.setTitle(messageText);
-                        statesCreateTask.remove(chatId);
-                        statesCreateTask.put(chatId, new CreateTaskState(CreateTaskState.Stage.WAITING_FOR_TASK_DESCRIPTION));
-                        sendMessage(chatId, "Введите описание задачи");
+                        statesCreateTask.remove(chat_id);
+                        statesCreateTask.put(chat_id, new CreateTaskState(CreateTaskState.Stage.WAITING_FOR_TASK_DESCRIPTION));
+                        sendMessage(chat_id, "Введите описание задачи");
                         break;
                     case WAITING_FOR_TASK_DESCRIPTION:
                         task.setDescription(messageText);
-                        statesCreateTask.remove(chatId);
-                        statesCreateTask.put(chatId, new CreateTaskState(CreateTaskState.Stage.WAITING_FOR_TASK_DATE));
-                        sendMessage(chatId, "Введите срок выполнения задачи в формате 'дддд-мм-дд'");
+                        statesCreateTask.remove(chat_id);
+                        statesCreateTask.put(chat_id, new CreateTaskState(CreateTaskState.Stage.WAITING_FOR_TASK_DATE));
+                        sendMessage(chat_id, "Введите срок выполнения задачи в формате 'дддд-мм-дд'");
                         break;
                     case WAITING_FOR_TASK_DATE:
                         task.setDueDate(LocalDate.parse(messageText));
-                        statesCreateTask.remove(chatId);
-                        statesCreateTask.put(chatId, new CreateTaskState(CreateTaskState.Stage.NONE));
+                        statesCreateTask.remove(chat_id);
+                        statesCreateTask.put(chat_id, new CreateTaskState(CreateTaskState.Stage.NONE));
                         taskService.create(task);
-                        sendMessage(chatId, "Задача успешно создана");
+                        sendMessage(chat_id, "Задача успешно создана");
+                        execute(Keyboard.testInlineKeyboardAb(chat_id));
                         break;
                 }
             }
@@ -94,9 +109,16 @@ public class FreeTaskManagerBot extends TelegramLongPollingBot {
     }
 
     private String getTaskListAsString(List<Task> taskList) {
+        if(taskList.isEmpty()){
+            return "Текущие задачи отсутсвуют";
+        }
         StringBuilder stringBuilder = new StringBuilder();
+        int counter = 1;
         for (Task task : taskList) {
-            stringBuilder.append(task.getId()).append(" - ").append(task.getTitle()).append("\n");
+            stringBuilder.append(counter).append(". ").append(task.getTitle()).append("\n");
+            stringBuilder.append(task.getDescription()).append("\n");
+            stringBuilder.append(task.getDueDate()).append("\n");
+            counter++;
         }
         return stringBuilder.toString();
     }

@@ -28,12 +28,12 @@ public class TaskController {
     }
 
     @GetMapping
-    public List<Task> getTasks(@RequestParam(required = false) Boolean completed) {
+    public List<Task> getTasks(@RequestParam(required = false) Boolean completed, @RequestParam(required = true) Long user_id) {
         if (completed == null) {
             return taskService.findAll();
         } else if (completed) {
             return taskService.findByCompletedTrue();
-        } else return taskService.findNotCompletedTasks();
+        } else return taskService.findByUserId(user_id);
     }
 
     @PutMapping(path = "{id}")

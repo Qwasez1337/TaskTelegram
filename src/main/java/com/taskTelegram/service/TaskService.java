@@ -56,4 +56,7 @@ public class TaskService {
         taskRepository.save(task);
     }
 
+    public List<Task> findByUserId(Long user_id) {
+        return taskRepository.findByUserId(user_id);
+    }
 }
