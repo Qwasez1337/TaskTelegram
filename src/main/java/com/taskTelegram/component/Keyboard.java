@@ -10,7 +10,7 @@ import java.util.List;
 
 class Keyboard {
 
-    public static SendMessage testInlineKeyboardAb (long chat_id) {
+    public static SendMessage startInlineKeyboard (long chat_id) {
         SendMessage message = new SendMessage();
         message.setChatId(chat_id);
         message.setText("Выбери команду");
