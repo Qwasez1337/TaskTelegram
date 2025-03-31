@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigInteger;
 import java.time.LocalDate;
 
 @Entity
@@ -24,6 +25,9 @@ public class Task {
     @Setter
     @Getter
     private boolean completed;
+    @Setter
+    @Getter
+    private Long userId;
 
     public void setId(Long id) {
         this.id = id;
