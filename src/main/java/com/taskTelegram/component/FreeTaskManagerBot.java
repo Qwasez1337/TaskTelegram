@@ -3,6 +3,7 @@ package com.taskTelegram.component;
 import com.taskTelegram.entity.CreateTaskState;
 import com.taskTelegram.entity.Task;
 import com.taskTelegram.service.TaskService;
+import jakarta.annotation.PostConstruct;
 import lombok.SneakyThrows;
 import org.glassfish.jersey.process.internal.Stage;
 import org.hibernate.annotations.Comment;
@@ -12,9 +13,12 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.DefaultAbsSender;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -44,6 +48,18 @@ public class FreeTaskManagerBot extends TelegramLongPollingBot {
 
     public FreeTaskManagerBot(TaskService taskService) {
         this.taskService = taskService;
+    }
+
+    @PostConstruct
+    private void addCommandInterface() {
+        List<BotCommand> commands = new ArrayList<>();
+        commands.add(new BotCommand("/start", "Обновить меню"));
+
+        try {
+            execute(new SetMyCommands(commands, new BotCommandScopeDefault(), null));
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @SneakyThrows
@@ -130,7 +146,7 @@ public class FreeTaskManagerBot extends TelegramLongPollingBot {
             message.setText(text);
             execute(message);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            throw new IllegalStateException();
         }
     }
 
